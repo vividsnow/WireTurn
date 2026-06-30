@@ -307,8 +307,8 @@ fun ProfileListItem(
         targetValue = when {
             isDragged -> MaterialTheme.colorScheme.surfaceContainerHighest
             isSelected -> MaterialTheme.colorScheme.secondaryContainer
-            isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            isHighlighted -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerHigh
         },
         animationSpec = tween(durationMillis = if (isHighlighted) 200 else 1000),
         label = "profile_item_bg"
@@ -341,7 +341,7 @@ fun ProfileListItem(
                 ProfileSummary(
                     profile = profile,
                     color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.basicMarquee()
                 )
             }
@@ -770,7 +770,7 @@ fun ProfilesDialog(
                                 painter = painterResource(R.drawable.mobile_outlined_24px),
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                tint = MaterialTheme.colorScheme.outlineVariant
                             )
                             Spacer(Modifier.height(16.dp))
                             Text(
@@ -786,6 +786,7 @@ fun ProfilesDialog(
                         val isSelected = profile.id == (optimisticSelectedId ?: currentId)
                         val isSelectedInMode = selectedIds.contains(profile.id)
                         var menuExpanded by remember { mutableStateOf(false) }
+                        var editMenuExpanded by remember { mutableStateOf(false) }
 
                         val itemShape = when {
                             isDragged -> RoundedCornerShape(12.dp)
@@ -847,7 +848,7 @@ fun ProfilesDialog(
                                     ),
                                     contentDescription = null,
                                     tint = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    else MaterialTheme.colorScheme.outline
                                 )
                             },
                             modifier = Modifier
@@ -953,6 +954,24 @@ fun ProfilesDialog(
                                                 }
                                             )
                                             DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.profile_edit)) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        painterResource(R.drawable.edit_square_24px),
+                                                        null,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                },
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    HapticUtil.perform(
+                                                        context,
+                                                        HapticUtil.Pattern.CLICK
+                                                    )
+                                                    editMenuExpanded = true
+                                                }
+                                            )
+                                            DropdownMenuItem(
                                                 text = { Text(stringResource(R.string.profile_rename)) },
                                                 leadingIcon = {
                                                     Icon(
@@ -1018,6 +1037,52 @@ fun ProfilesDialog(
                                                     textColor = MaterialTheme.colorScheme.error,
                                                     leadingIconColor = MaterialTheme.colorScheme.error
                                                 )
+                                            )
+                                        }
+                                        AppDropdownMenu(
+                                            expanded = editMenuExpanded,
+                                            onDismissRequest = { editMenuExpanded = false },
+                                            title = stringResource(R.string.profile_edit)
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.profile_edit_config)) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        painterResource(R.drawable.edit_square_24px),
+                                                        null,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                },
+                                                onClick = {
+                                                    editMenuExpanded = false
+                                                    HapticUtil.perform(context, HapticUtil.Pattern.CLICK)
+                                                    val intent = when (profile.kernelVariant) {
+                                                        KernelVariant.TURNABLE -> android.content.Intent(context, TurnableConfigActivity::class.java)
+                                                        KernelVariant.OLCRTC -> android.content.Intent(context, OlcRtcConfigActivity::class.java)
+                                                        KernelVariant.WEBDAV -> android.content.Intent(context, com.wireturn.app.ui.activities.cores.WebdavConfigActivity::class.java)
+                                                    }
+                                                    intent.putExtra("EXTRA_EDIT_MODE", true)
+                                                    intent.putExtra("EXTRA_PROFILE_NAME", profile.name)
+                                                    intent.putExtra("EXTRA_PROFILE_ID", profile.id)
+                                                    context.startActivity(intent)
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.xray_title)) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_xray_24px),
+                                                        null,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                },
+                                                onClick = {
+                                                    editMenuExpanded = false
+                                                    HapticUtil.perform(context, HapticUtil.Pattern.CLICK)
+                                                    val intent = android.content.Intent(context, com.wireturn.app.ui.activities.XrayEditActivity::class.java)
+                                                    intent.putExtra("EXTRA_PROFILE_ID", profile.id)
+                                                    context.startActivity(intent)
+                                                }
                                             )
                                         }
                                     }

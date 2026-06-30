@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -37,7 +36,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,7 +93,6 @@ import com.wireturn.app.ui.ShareDropdownMenu
 import com.wireturn.app.ui.SliderRow
 import com.wireturn.app.ui.StandardLeadingIcon
 import com.wireturn.app.ui.SupportingText
-import com.wireturn.app.ui.SwitchRow
 import com.wireturn.app.ui.TextFieldRow
 import com.wireturn.app.ui.ValidatorUtils
 import com.wireturn.app.ui.redact
@@ -109,6 +106,7 @@ import kotlin.math.roundToInt
 fun TurnableConfigScreen(
     isEditMode: Boolean = false,
     initialConfig: TurnableConfig = TurnableConfig(),
+    profileName: String? = null,
     privacyMode: Boolean = false,
     onBack: () -> Unit,
     onSave: (TurnableConfig) -> Unit
@@ -217,6 +215,7 @@ fun TurnableConfigScreen(
         topBar = {
             AppTopAppBar(
                 title = stringResource(R.string.kernel_turnable),
+                subtitle = if (isEditMode) profileName else null,
                 onBack = handleBack,
                 scrollBehavior = scrollBehavior,
                 actions = {
@@ -403,18 +402,6 @@ fun TurnableConfigScreen(
                         isModified = isEditMode && config.peers != initialConfig.peers
                     )
                 }
-                SectionItem {
-                    TextFieldRow(
-                        label = stringResource(R.string.username_label),
-                        value = config.username.redact(isPrivacyActive),
-                        onValueChange = { if (!isPrivacyActive) config = config.copy(username = it) },
-                        readOnly = isPrivacyActive,
-                        supportingText = stringResource(R.string.username_desc),
-                        isModified = isEditMode && config.username != initialConfig.username,
-                        isError = config.username.isBlank(),
-                        privacyMode = isPrivacyActive
-                    )
-                }
                 SectionItem(position = ItemPosition.Bottom) {
                     TextFieldRow(
                         label = stringResource(R.string.call_id_label),
@@ -538,7 +525,7 @@ fun TurnableConfigScreen(
                         privacyMode = isPrivacyActive
                     )
                 }
-                SectionItem {
+                SectionItem(position = ItemPosition.Bottom) {
                     LabeledButtonGroup(
                         label = stringResource(R.string.proto_label),
                         supportingText = stringResource(R.string.proto_desc),
@@ -556,22 +543,6 @@ fun TurnableConfigScreen(
                             )
                         }
                     }
-                }
-                SectionItem(
-                    position = ItemPosition.Bottom,
-                    onClick = {
-                        val next = !config.forceTurn
-                        HapticUtil.perform(context, if (next) HapticUtil.Pattern.TOGGLE_ON else HapticUtil.Pattern.TOGGLE_OFF)
-                        config = config.copy(forceTurn = next)
-                    }
-                ) {
-                    SwitchRow(
-                        label = stringResource(R.string.force_turn_label),
-                        supportingText = stringResource(R.string.force_turn_desc),
-                        checked = config.forceTurn,
-                        onCheckedChange = { config = config.copy(forceTurn = it) },
-                        isModified = isEditMode && config.forceTurn != initialConfig.forceTurn
-                    )
                 }
             }
         }
@@ -748,131 +719,86 @@ fun RoutesDialog(
     onDelete: (TurnableRoute) -> Unit,
     onDismiss: () -> Unit
 ) {
-    BasicAlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxWidth(0.9f)
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(vertical = 24.dp, horizontal = 12.dp)
-                    .heightIn(max = 600.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+    SelectionDialog(
+        title = stringResource(R.string.route_title),
+        items = config.routes,
+        isSelected = { it.routeId == config.selectedRouteId },
+        onSelect = { onSelect(it.routeId) },
+        onDismiss = onDismiss,
+        dismissOnSelect = false,
+        footer = {
+            Surface(
+                onClick = onAdd,
+                shape = MaterialTheme.shapes.extraLarge,
+                color = Color.Transparent,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = stringResource(R.string.route_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
-                config.routes.forEach { route ->
-                    val isSelected = route.routeId == config.selectedRouteId
-                    val iconRes = when (route.socket.lowercase()) {
-                        "tcp" -> R.drawable.compare_arrows_24px
-                        "udp" -> R.drawable.arrow_forward_24px
-                        else -> R.drawable.route_24px
-                    }
-
-                    Surface(
-                        onClick = { onSelect(route.routeId) },
-                        shape = MaterialTheme.shapes.medium,
-                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            StandardLeadingIcon {
-                                Icon(
-                                    painter = painterResource(iconRes),
-                                    contentDescription = null,
-                                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = route.name.ifBlank { route.routeId },
-                                    maxLines = 1,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                )
-                                RouteSummary(
-                                    route = route,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else Color.Unspecified
-                                )
-                            }
-                            
-                            var showMenu by remember { mutableStateOf(false) }
-                            Box {
-                                IconButton(onClick = { showMenu = true }) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert_24px),
-                                        contentDescription = stringResource(R.string.profile_actions),
-                                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = showMenu,
-                                    onDismissRequest = { showMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.route_edit)) },
-                                        onClick = {
-                                            showMenu = false
-                                            onEdit(route)
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                painterResource(R.drawable.edit_24px),
-                                                contentDescription = null
-                                            )
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.route_delete)) },
-                                        onClick = {
-                                            showMenu = false
-                                            onDelete(route)
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                painterResource(R.drawable.delete_24px),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Surface(
-                    onClick = onAdd,
-                    shape = MaterialTheme.shapes.medium,
-                    color = Color.Transparent
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StandardLeadingIcon {
-                            Icon(
-                                painter = painterResource(R.drawable.add_24px),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        Text(
-                            text = stringResource(R.string.route_add),
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelLarge
+                    StandardLeadingIcon {
+                        Icon(
+                            painter = painterResource(R.drawable.add_24px),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
+                    Text(
+                        text = stringResource(R.string.route_add),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+    ) { route, _ ->
+        val iconRes = when (route.socket.lowercase()) {
+            "tcp" -> R.drawable.compare_arrows_24px
+            "udp" -> R.drawable.arrow_forward_24px
+            else -> R.drawable.route_24px
+        }
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StandardLeadingIcon {
+                Icon(painter = painterResource(iconRes), contentDescription = null)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = route.name.ifBlank { route.routeId }, maxLines = 1)
+                RouteSummary(route = route)
+            }
+            var showMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_vert_24px),
+                        contentDescription = stringResource(R.string.profile_actions)
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.route_edit)) },
+                        onClick = { showMenu = false; onEdit(route) },
+                        leadingIcon = { Icon(painterResource(R.drawable.edit_24px), null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.route_delete)) },
+                        onClick = { showMenu = false; onDelete(route) },
+                        leadingIcon = {
+                            Icon(
+                                painterResource(R.drawable.delete_24px),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    )
                 }
             }
         }

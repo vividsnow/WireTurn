@@ -118,8 +118,6 @@
     <string name="route_transport_label">Transport</string>
     <string name="user_uuid_label">User UUID</string>
     <string name="user_uuid_desc">User authorization on the Turnable server</string>
-    <string name="username_label">Call participant name</string>
-    <string name="username_desc">Join the call on the platform</string>
     <string name="call_id_label">Call ID</string>
     <string name="call_id_desc">VK: «https://vk.com/call/join/[ID]»</string>
     <string name="connection_type_label">Connection type</string>
@@ -134,8 +132,6 @@
     <string name="gateway_desc">Server IP and port from the Turnable configuration</string>
     <string name="proto_label">Transport protocol</string>
     <string name="proto_desc">Required for Relay type. SRTP is highly recommended</string>
-    <string name="force_turn_label">Force TURN</string>
-    <string name="force_turn_desc">TURN server for all connections</string>
     <string name="history_label">History</string>
     <string name="kernel_turnable" translatable="false">Turnable</string>
     <string name="kernel_olcrtc" translatable="false">olcRTC</string>
@@ -159,6 +155,8 @@
     <string name="olcrtc_dns_label">DNS Server</string>
     <string name="olcrtc_carrier_label">Carrier</string>
     <string name="olcrtc_transport_label">Transport</string>
+    <string name="olcrtc_restart_on_connection_errors_label">Restart on errors</string>
+    <string name="olcrtc_restart_on_connection_errors_desc">Restart the connection after repeated \"remote not ready\" errors</string>
     <string name="olcrtc_vp8_settings_title">VP8Channel Parameters</string>
     <string name="olcrtc_sei_settings_title">SEIChannel Parameters</string>
     <string name="olcrtc_video_settings_title">VideoChannel Parameters</string>
@@ -406,6 +404,8 @@
     <string name="profile_create">Create profile</string>
     <string name="profile_new">New profile</string>
     <string name="profile_clone">Clone</string>
+    <string name="profile_edit">Edit</string>
+    <string name="profile_edit_config">Configuration</string>
     <string name="profile_rename">Rename</string>
     <string name="profile_delete">Delete</string>
     <string name="profile_export">Export</string>
